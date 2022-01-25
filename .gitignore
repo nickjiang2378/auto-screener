@@ -1,0 +1,7 @@
+node_modules/
+keys.json
+notes.md
+tmp/
+logs/
+.env/
+experimental.js
