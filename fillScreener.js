@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const admin = require("firebase-admin");
-const serviceAccount = require("./keys.json")
-const loginInfo = require("./.env/login.json")
+const serviceAccount = JSON.parse(process.env.FIREBASE_API_KEY)
+const loginInfo = require("./secrets/login.json")
 //const prompt = require('prompt-sync')();
 
 admin.initializeApp({
@@ -12,10 +14,14 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-async function runAutoScreener(production, writeNewCookie) {
+async function runAutoScreener(writeNewCookie, production=true) {
+    console.log(writeNewCookie)
     const formLink = "https://calberkeley.ca1.qualtrics.com/jfe/form/SV_3xTgcs162K19qRv";
     let browser;
-    if (production) {
+
+    if (writeNewCookie) {
+        browser = await puppeteer.launch({ headless: false, slowMo: 10, timeout: 60000 })
+    } else if (production) {
         browser = await puppeteer.launch({ slowMo: 10 });
     } else {
         browser = await puppeteer.launch({ headless: false, devtools: true, slowMo: 100 });
@@ -27,8 +33,11 @@ async function runAutoScreener(production, writeNewCookie) {
             .get()
             .then((doc) => {
                 const dbUserAuth = doc.data()
-                userAuth["username"] = dbUserAuth["username"]
-                userAuth["password"] = dbUserAuth["password"]
+                //userAuth["username"] = dbUserAuth["username"]
+                //userAuth["password"] = dbUserAuth["password"]
+                userAuth["username"] = process.env.USERNAME
+                userAuth["password"] = process.env.PASSWORD
+                
                 userAuth["authCookie"] = dbUserAuth["authCookie"]
                 userAuth["authTokenExpires"] = dbUserAuth["authTokenExpires"]
             })
@@ -132,7 +141,7 @@ function findAuthToken(cookiesJSON) {
     // cookiesJSON: cookies as JSON object
     let authToken;
     for (let cookie of cookiesJSON) {
-        if (cookie["name"] == "fdc|DI2E6FDN4O8CMBAS3N1N|DU9VDMJB4QFC7Z567WJC") {
+        if (cookie["name"] == process.env.AUTH_TOKEN_NAME) {
             authToken = cookie
             break
         }
@@ -141,6 +150,6 @@ function findAuthToken(cookiesJSON) {
     return authToken
 }
 
-runAutoScreener(true, false)
+runAutoScreener(false, true)
     .then(() => {console.log("Promise resolved"); process.exit()})
     .catch((e) => {console.log(`Task failed with runtime error: ${e}`); process.exit()});

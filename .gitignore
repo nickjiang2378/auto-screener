@@ -3,5 +3,6 @@ keys.json
 notes.md
 tmp/
 logs/
-.env/
+.env
+secrets/
 experimental.js
